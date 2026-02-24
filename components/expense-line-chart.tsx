@@ -83,15 +83,17 @@ export function ExpenseLineChart({ transactions }: ExpenseLineChartProps) {
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: "hsl(220, 10%, 46%)" }}
+                tick={{ fontSize: 11 }}
+                className="fill-muted-foreground"
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 12, fill: "hsl(220, 10%, 46%)" }}
+                tick={{ fontSize: 12 }}
+                className="fill-muted-foreground"
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value: number) => `R$${(value / 1000).toFixed(0)}k`}

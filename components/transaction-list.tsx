@@ -31,8 +31,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
                   <div
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                       item.type === "income"
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-red-50 text-red-500"
+                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                        : "bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400"
                     }`}
                   >
                     {item.type === "income" ? (
@@ -58,8 +58,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 <span
                   className={`text-sm font-semibold tabular-nums ${
                     item.type === "income"
-                      ? "text-emerald-600"
-                      : "text-red-500"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-500 dark:text-red-400"
                   }`}
                 >
                   {formatCurrency(item.amount)}

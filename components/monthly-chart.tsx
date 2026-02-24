@@ -88,17 +88,19 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
             >
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="hsl(220, 13%, 91%)"
+                className="stroke-border"
                 vertical={false}
               />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 12, fill: "hsl(220, 10%, 46%)" }}
+                tick={{ fontSize: 12 }}
+                className="fill-muted-foreground"
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 12, fill: "hsl(220, 10%, 46%)" }}
+                tick={{ fontSize: 12 }}
+                className="fill-muted-foreground"
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value: number) =>
@@ -108,13 +110,13 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
               <Tooltip content={<CustomTooltip />} />
               <Bar
                 dataKey="income"
-                fill="#0d9668"
+                fill="hsl(var(--success))"
                 radius={[4, 4, 0, 0]}
                 name="Entradas"
               />
               <Bar
                 dataKey="expense"
-                fill="#ef4444"
+                fill="hsl(var(--destructive))"
                 radius={[4, 4, 0, 0]}
                 name="Saidas"
               />
@@ -123,11 +125,11 @@ export function MonthlyChart({ data }: MonthlyChartProps) {
         </div>
         <div className="mt-4 flex items-center justify-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-sm bg-emerald-600" />
+            <div className="h-3 w-3 rounded-sm bg-success" />
             <span className="text-xs text-muted-foreground">Entradas</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-sm bg-red-500" />
+            <div className="h-3 w-3 rounded-sm bg-destructive" />
             <span className="text-xs text-muted-foreground">Saidas</span>
           </div>
         </div>
