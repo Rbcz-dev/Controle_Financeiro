@@ -1,6 +1,7 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Sans } from 'next/font/google'
+import { ThemeProvider } from "@/components/theme-provider"
 
 import './globals.css'
 
@@ -13,7 +14,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0d9668',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#c8960c' },
+    { media: '(prefers-color-scheme: dark)', color: '#121212' },
+  ],
   width: 'device-width',
   initialScale: 1,
 }
@@ -24,8 +28,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className={`${_inter.variable} ${_dmSans.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

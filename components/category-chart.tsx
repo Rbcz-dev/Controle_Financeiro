@@ -10,15 +10,15 @@ interface CategoryChartProps {
 }
 
 const COLORS = [
-  "#0d9668",
+  "#c8960c",
   "#3b82f6",
-  "#f59e0b",
   "#ef4444",
   "#8b5cf6",
   "#ec4899",
   "#14b8a6",
   "#f97316",
   "#6366f1",
+  "#22c55e",
 ]
 
 function CustomTooltip({

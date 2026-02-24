@@ -53,7 +53,7 @@ export function MonthlySummary({ data }: MonthlySummaryProps) {
                   <span className="text-xs text-muted-foreground">
                     Entradas
                   </span>
-                  <span className="text-xs font-medium text-emerald-600 tabular-nums">
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">
                     {formatCurrency(values.income)}
                   </span>
                 </div>
@@ -61,7 +61,7 @@ export function MonthlySummary({ data }: MonthlySummaryProps) {
                   <span className="text-xs text-muted-foreground">
                     Saidas
                   </span>
-                  <span className="text-xs font-medium text-red-500 tabular-nums">
+                  <span className="text-xs font-medium text-red-500 dark:text-red-400 tabular-nums">
                     {formatCurrency(values.expense)}
                   </span>
                 </div>
@@ -71,7 +71,7 @@ export function MonthlySummary({ data }: MonthlySummaryProps) {
                       Saldo
                     </span>
                     <span
-                      className={`text-xs font-bold tabular-nums ${values.total >= 0 ? "text-emerald-600" : "text-red-500"}`}
+                      className={`text-xs font-bold tabular-nums ${values.total >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}
                     >
                       {formatCurrency(values.total)}
                     </span>

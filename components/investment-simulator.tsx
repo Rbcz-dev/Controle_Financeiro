@@ -40,9 +40,9 @@ import {
 import { Calculator, TrendingUp, HelpCircle, Info } from "lucide-react"
 
 const TYPE_COLORS: Record<InvestmentType, string> = {
-  selic: "#0d9668",
+  selic: "#c8960c",
   cdi: "#3b82f6",
-  ipca: "#f59e0b",
+  ipca: "#22c55e",
 }
 
 function ChartTooltip({
@@ -366,19 +366,19 @@ export function InvestmentSimulator() {
                     {INVESTMENT_RATES[selectedType].name} {customRates[selectedType]}%
                   </Badge>
                 </div>
-                <p className="text-base font-bold text-emerald-600">
+                <p className="text-base font-bold text-success">
                   {formatCurrency(finalValue)}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-background p-3">
                 <span className="text-xs text-muted-foreground">Rendimento</span>
-                <p className="text-base font-bold text-emerald-600">
+                <p className="text-base font-bold text-success">
                   {formatCurrency(totalReturn)}
                 </p>
               </div>
               <div className="rounded-lg border border-border bg-background p-3">
                 <span className="text-xs text-muted-foreground">Rentabilidade</span>
-                <p className="text-base font-bold text-emerald-600">
+                <p className="text-base font-bold text-success">
                   {returnPercentage}%
                 </p>
               </div>
@@ -400,16 +400,18 @@ export function InvestmentSimulator() {
                       <stop offset="100%" stopColor="#94a3b8" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: "hsl(220, 10%, 46%)" }}
+                    tick={{ fontSize: 11 }}
+                    className="fill-muted-foreground"
                     axisLine={false}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: "hsl(220, 10%, 46%)" }}
+                    tick={{ fontSize: 12 }}
+                    className="fill-muted-foreground"
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(value: number) =>

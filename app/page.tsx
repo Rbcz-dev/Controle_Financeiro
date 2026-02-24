@@ -9,6 +9,8 @@ import { CategoryChart } from "@/components/category-chart"
 import { MonthlyChart } from "@/components/monthly-chart"
 import { ExpenseLineChart } from "@/components/expense-line-chart"
 import { InvestmentSimulator } from "@/components/investment-simulator"
+import { ManualEntry } from "@/components/manual-entry"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
@@ -95,6 +97,7 @@ function SidebarNav({
 
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [manualTransactions, setManualTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData>({})
   const [categoryData, setCategoryData] = useState<CategoryData>({})
   const [summary, setSummary] = useState<FinanceSummary | null>(null)
@@ -102,20 +105,31 @@ export default function Home() {
   const [activePage, setActivePage] = useState<ActivePage>("upload")
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const handleFileLoaded = useCallback((content: string) => {
-    const rawData = parseCSV(content)
-    const normalized = normalizeData(rawData)
-    const monthly = groupByMonth(normalized)
-    const category = groupByCategory(normalized)
-    const summaryData = computeSummary(normalized, monthly, category)
-
-    setTransactions(normalized)
+  const recalculateData = useCallback((allTransactions: Transaction[]) => {
+    const monthly = groupByMonth(allTransactions)
+    const category = groupByCategory(allTransactions)
+    const summaryData = computeSummary(allTransactions, monthly, category)
     setMonthlyData(monthly)
     setCategoryData(category)
     setSummary(summaryData)
-    setHasData(true)
-    setActivePage("dashboard")
+    if (allTransactions.length > 0) setHasData(true)
   }, [])
+
+  const handleFileLoaded = useCallback((content: string) => {
+    const rawData = parseCSV(content)
+    const normalized = normalizeData(rawData)
+
+    setTransactions(normalized)
+    const all = [...normalized, ...manualTransactions]
+    recalculateData(all)
+    setActivePage("dashboard")
+  }, [manualTransactions, recalculateData])
+
+  const handleManualTransactionsChange = useCallback((updated: Transaction[]) => {
+    setManualTransactions(updated)
+    const all = [...transactions, ...updated]
+    recalculateData(all)
+  }, [transactions, recalculateData])
 
   const handleNavigate = useCallback((page: ActivePage) => {
     setActivePage(page)
@@ -156,30 +170,33 @@ export default function Home() {
           </div>
 
           {/* Desktop top nav */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
-              const isActive = activePage === item.id
-              const isDisabled = !hasData && item.id !== "upload" && item.id !== "investimentos"
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => !isDisabled && handleNavigate(item.id)}
-                  disabled={isDisabled}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : isDisabled
-                        ? "text-muted-foreground/50 cursor-not-allowed"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              )
-            })}
-          </nav>
+          <div className="flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1">
+              {NAV_ITEMS.map((item) => {
+                const isActive = activePage === item.id
+                const isDisabled = !hasData && item.id !== "upload" && item.id !== "investimentos"
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => !isDisabled && handleNavigate(item.id)}
+                    disabled={isDisabled}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : isDisabled
+                          ? "text-muted-foreground/50 cursor-not-allowed"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -198,6 +215,10 @@ export default function Home() {
               </p>
             </section>
             <FileUpload onFileLoaded={handleFileLoaded} />
+            <ManualEntry
+              onTransactionsChange={handleManualTransactionsChange}
+              manualTransactions={manualTransactions}
+            />
           </div>
         )}
 
@@ -228,7 +249,7 @@ export default function Home() {
           <div className="flex flex-col gap-6">
             {hasData ? (
               <>
-                <TransactionList transactions={transactions} />
+                <TransactionList transactions={[...transactions, ...manualTransactions]} />
               </>
             ) : (
               <EmptyState
@@ -247,7 +268,7 @@ export default function Home() {
               <>
                 <CategoryChart data={categoryData} />
                 <MonthlyChart data={monthlyData} />
-                <ExpenseLineChart transactions={transactions} />
+                <ExpenseLineChart transactions={[...transactions, ...manualTransactions]} />
               </>
             ) : (
               <EmptyState
