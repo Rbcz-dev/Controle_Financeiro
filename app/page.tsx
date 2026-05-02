@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { FileUpload } from "@/components/file-upload"
 import { SummaryCards } from "@/components/summary-cards"
 import { TransactionList } from "@/components/transaction-list"
 import { MonthlySummary } from "@/components/monthly-summary"
@@ -11,6 +10,7 @@ import { ExpenseLineChart } from "@/components/expense-line-chart"
 import { InvestmentSimulator } from "@/components/investment-simulator"
 import { ManualEntry } from "@/components/manual-entry"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { FinancialReportDownload } from "@/components/financial-report-download"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
@@ -29,19 +29,19 @@ import {
   FileText,
   LayoutDashboard,
   TrendingUp,
-  Upload,
+  PenLine,
   PieChart,
   Menu,
 } from "lucide-react"
 
-type ActivePage = "dashboard" | "gastos" | "graficos" | "investimentos" | "upload"
+type ActivePage = "dashboard" | "gastos" | "graficos" | "investimentos" | "adicionar"
 
 const NAV_ITEMS: { id: ActivePage; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "gastos", label: "Gastos", icon: FileText },
   { id: "graficos", label: "Graficos", icon: PieChart },
   { id: "investimentos", label: "Investimentos", icon: TrendingUp },
-  { id: "upload", label: "Upload CSV", icon: Upload },
+  { id: "adicionar", label: "Adicionar Dados", icon: PenLine },
 ]
 
 function EmptyState({ icon: Icon, title, description }: { icon: typeof LayoutDashboard; title: string; description: string }) {
@@ -71,7 +71,7 @@ function SidebarNav({
     <nav className="flex flex-col gap-1">
       {NAV_ITEMS.map((item) => {
         const isActive = activePage === item.id
-        const isDisabled = !hasData && item.id !== "upload" && item.id !== "investimentos"
+        const isDisabled = !hasData && item.id !== "adicionar" && item.id !== "investimentos"
         return (
           <button
             key={item.id}
@@ -102,7 +102,7 @@ export default function Home() {
   const [categoryData, setCategoryData] = useState<CategoryData>({})
   const [summary, setSummary] = useState<FinanceSummary | null>(null)
   const [hasData, setHasData] = useState(false)
-  const [activePage, setActivePage] = useState<ActivePage>("upload")
+  const [activePage, setActivePage] = useState<ActivePage>("adicionar")
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const recalculateData = useCallback((allTransactions: Transaction[]) => {
@@ -174,7 +174,7 @@ export default function Home() {
             <nav className="hidden lg:flex items-center gap-1">
               {NAV_ITEMS.map((item) => {
                 const isActive = activePage === item.id
-                const isDisabled = !hasData && item.id !== "upload" && item.id !== "investimentos"
+                const isDisabled = !hasData && item.id !== "adicionar" && item.id !== "investimentos"
                 return (
                   <button
                     key={item.id}
@@ -195,6 +195,15 @@ export default function Home() {
                 )
               })}
             </nav>
+            {hasData && summary && (
+              <FinancialReportDownload
+                transactions={[...transactions, ...manualTransactions]}
+                monthlyData={monthlyData}
+                categoryData={categoryData}
+                summary={summary}
+                variant="icon"
+              />
+            )}
             <ThemeToggle />
           </div>
         </div>
@@ -202,19 +211,18 @@ export default function Home() {
 
       {/* Main content */}
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        {/* UPLOAD PAGE */}
-        {activePage === "upload" && (
+        {/* ADICIONAR DADOS */}
+        {activePage === "adicionar" && (
           <div className="flex flex-col gap-6">
             <section className="flex flex-col items-center gap-2 text-center">
               <h2 className="text-2xl font-bold text-foreground sm:text-3xl text-balance">
-                Analise suas financas de forma simples
+                Registre suas movimentacoes
               </h2>
               <p className="max-w-lg text-sm text-muted-foreground leading-relaxed">
-                Envie o extrato do seu banco em formato CSV e veja um resumo
-                completo dos seus gastos, com graficos interativos e simulacao de investimentos.
+                Adicione seus gastos e ganhos manualmente para ter uma visao
+                completa da sua situacao financeira, com graficos interativos e resumos detalhados.
               </p>
             </section>
-            <FileUpload onFileLoaded={handleFileLoaded} />
             <ManualEntry
               onTransactionsChange={handleManualTransactionsChange}
               manualTransactions={manualTransactions}
@@ -238,7 +246,7 @@ export default function Home() {
               <EmptyState
                 icon={LayoutDashboard}
                 title="Nenhum dado disponivel"
-                description="Faca o upload de um arquivo CSV na aba Upload CSV para visualizar o resumo dos seus gastos."
+                description="Adicione transacoes na aba Adicionar Dados para visualizar o resumo das suas financas."
               />
             )}
           </div>
@@ -255,7 +263,7 @@ export default function Home() {
               <EmptyState
                 icon={FileText}
                 title="Nenhuma transacao encontrada"
-                description="Faca o upload de um arquivo CSV para visualizar suas transacoes."
+                description="Adicione transacoes na aba Adicionar Dados para visualizar suas movimentacoes."
               />
             )}
           </div>
@@ -274,7 +282,7 @@ export default function Home() {
               <EmptyState
                 icon={PieChart}
                 title="Nenhum grafico disponivel"
-                description="Faca o upload de um arquivo CSV para gerar graficos interativos dos seus gastos."
+                description="Adicione transacoes na aba Adicionar Dados para gerar graficos interativos das suas financas."
               />
             )}
           </div>

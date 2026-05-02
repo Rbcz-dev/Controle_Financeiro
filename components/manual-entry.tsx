@@ -15,7 +15,16 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { formatCurrency, type Transaction } from "@/lib/finance"
-import { Plus, Trash2, ArrowUpRight, ArrowDownRight, PenLine } from "lucide-react"
+import {
+  Plus,
+  Trash2,
+  ArrowUpRight,
+  ArrowDownRight,
+  PenLine,
+  CalendarClock,
+  Eraser,
+} from "lucide-react"
+import { toast } from "sonner"
 
 const CATEGORIES = [
   "Alimentacao",
@@ -40,16 +49,44 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
   const [amount, setAmount] = useState("")
   const [type, setType] = useState<"income" | "expense">("expense")
   const [category, setCategory] = useState("Outros")
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const setToday = useCallback(() => {
+    const today = new Date()
+    const yyyy = today.getFullYear()
+    const mm = String(today.getMonth() + 1).padStart(2, "0")
+    const dd = String(today.getDate()).padStart(2, "0")
+    setDate(`${yyyy}-${mm}-${dd}`)
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.date
+      return next
+    })
+  }, [])
+
+  const validate = useCallback(() => {
+    const newErrors: Record<string, string> = {}
+
+    if (!date) newErrors.date = "Informe a data"
+    if (!description.trim()) newErrors.description = "Informe a descricao"
+
+    if (!amount) {
+      newErrors.amount = "Informe o valor"
+    } else {
+      const parsed = parseFloat(amount.replace(",", "."))
+      if (isNaN(parsed) || parsed <= 0) newErrors.amount = "Valor invalido"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [date, description, amount])
 
   const handleAdd = useCallback(() => {
-    if (!date || !description || !amount) return
+    if (!validate()) return
 
     const parsedAmount = parseFloat(amount.replace(",", "."))
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return
-
     const finalAmount = type === "expense" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount)
 
-    // Parse date: handle DD/MM/YYYY or YYYY-MM-DD
     let parsedDate: Date
     if (date.includes("/")) {
       const parts = date.split("/")
@@ -62,11 +99,14 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
       parsedDate = new Date(date)
     }
 
-    if (isNaN(parsedDate.getTime())) return
+    if (isNaN(parsedDate.getTime())) {
+      setErrors((prev) => ({ ...prev, date: "Data invalida" }))
+      return
+    }
 
     const newTransaction: Transaction = {
       date: parsedDate,
-      description,
+      description: description.trim(),
       category,
       amount: finalAmount,
       type,
@@ -75,17 +115,54 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
     const updated = [...manualTransactions, newTransaction]
     onTransactionsChange(updated)
 
-    // Clear form
+    toast.success("Transacao adicionada", {
+      description: `${description.trim()} - ${formatCurrency(Math.abs(parsedAmount))}`,
+    })
+
     setDescription("")
     setAmount("")
-  }, [date, description, amount, type, category, manualTransactions, onTransactionsChange])
+    setErrors({})
+  }, [date, description, amount, type, category, manualTransactions, onTransactionsChange, validate])
 
   const handleRemove = useCallback(
     (index: number) => {
+      const removed = manualTransactions[index]
       const updated = manualTransactions.filter((_, i) => i !== index)
       onTransactionsChange(updated)
+      toast("Transacao removida", {
+        description: removed.description,
+      })
     },
     [manualTransactions, onTransactionsChange],
+  )
+
+  const handleClearAll = useCallback(() => {
+    onTransactionsChange([])
+    toast("Todas as transacoes manuais foram removidas")
+  }, [onTransactionsChange])
+
+  const handleFieldChange = useCallback(
+    (field: string, value: string) => {
+      if (errors[field]) {
+        setErrors((prev) => {
+          const next = { ...prev }
+          delete next[field]
+          return next
+        })
+      }
+      switch (field) {
+        case "date":
+          setDate(value)
+          break
+        case "description":
+          setDescription(value)
+          break
+        case "amount":
+          setAmount(value)
+          break
+      }
+    },
+    [errors],
   )
 
   return (
@@ -94,28 +171,76 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
         <div className="flex items-center gap-2">
           <PenLine className="h-5 w-5 text-primary" />
           <CardTitle className="text-base font-semibold text-foreground">
-            Entrada Manual
+            Adicionar Transacao
           </CardTitle>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          Adicione seus gastos e ganhos manualmente.
+          Registre seus gastos e ganhos manualmente para acompanhar sua situacao financeira.
         </p>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
+          {/* Type toggle */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Tipo da transacao</Label>
+            <div className="flex rounded-lg border border-border bg-background p-1">
+              <button
+                type="button"
+                onClick={() => setType("expense")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
+                  type === "expense"
+                    ? "bg-red-500 text-white shadow-sm dark:bg-red-600"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ArrowDownRight className="h-4 w-4" />
+                Gasto
+              </button>
+              <button
+                type="button"
+                onClick={() => setType("income")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
+                  type === "income"
+                    ? "bg-emerald-500 text-white shadow-sm dark:bg-emerald-600"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <ArrowUpRight className="h-4 w-4" />
+                Ganho
+              </button>
+            </div>
+          </div>
+
           {/* Form */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="manual-date" className="text-xs text-muted-foreground">
                 Data
               </Label>
-              <Input
-                id="manual-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-background"
-              />
+              <div className="flex gap-1.5">
+                <Input
+                  id="manual-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => handleFieldChange("date", e.target.value)}
+                  className={`bg-background flex-1 ${errors.date ? "border-destructive" : ""}`}
+                  aria-invalid={!!errors.date}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={setToday}
+                  className="shrink-0 bg-transparent"
+                  title="Usar data de hoje"
+                  aria-label="Usar data de hoje"
+                >
+                  <CalendarClock className="h-4 w-4" />
+                </Button>
+              </div>
+              {errors.date && (
+                <span className="text-xs text-destructive">{errors.date}</span>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="manual-desc" className="text-xs text-muted-foreground">
@@ -126,9 +251,16 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
                 type="text"
                 placeholder="Ex: Supermercado"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="bg-background"
+                onChange={(e) => handleFieldChange("description", e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd()
+                }}
+                className={`bg-background ${errors.description ? "border-destructive" : ""}`}
+                aria-invalid={!!errors.description}
               />
+              {errors.description && (
+                <span className="text-xs text-destructive">{errors.description}</span>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="manual-amount" className="text-xs text-muted-foreground">
@@ -140,24 +272,16 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
                 inputMode="decimal"
                 placeholder="0,00"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="bg-background"
+                onChange={(e) => handleFieldChange("amount", e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd()
+                }}
+                className={`bg-background ${errors.amount ? "border-destructive" : ""}`}
+                aria-invalid={!!errors.amount}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">Tipo</Label>
-              <Select
-                value={type}
-                onValueChange={(val: "income" | "expense") => setType(val)}
-              >
-                <SelectTrigger className="bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="expense">Gasto</SelectItem>
-                  <SelectItem value="income">Ganho</SelectItem>
-                </SelectContent>
-              </Select>
+              {errors.amount && (
+                <span className="text-xs text-destructive">{errors.amount}</span>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Categoria</Label>
@@ -178,7 +302,6 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
 
           <Button
             onClick={handleAdd}
-            disabled={!date || !description || !amount}
             className="w-full sm:w-auto sm:self-start gap-1.5"
           >
             <Plus className="h-4 w-4" />
@@ -192,6 +315,15 @@ export function ManualEntry({ onTransactionsChange, manualTransactions }: Manual
                 <span className="text-sm font-medium text-foreground">
                   Transacoes manuais ({manualTransactions.length})
                 </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAll}
+                  className="gap-1.5 text-muted-foreground hover:text-destructive"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                  Limpar tudo
+                </Button>
               </div>
               <ScrollArea className={manualTransactions.length > 5 ? "h-[260px]" : ""}>
                 <div className="flex flex-col gap-2">
