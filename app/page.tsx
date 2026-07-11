@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { FileUpload } from "@/components/file-upload"
 import { SummaryCards } from "@/components/summary-cards"
 import { TransactionList } from "@/components/transaction-list"
 import { MonthlySummary } from "@/components/monthly-summary"
@@ -8,20 +9,17 @@ import { CategoryChart } from "@/components/category-chart"
 import { MonthlyChart } from "@/components/monthly-chart"
 import { ExpenseLineChart } from "@/components/expense-line-chart"
 import { InvestmentSimulator } from "@/components/investment-simulator"
+import { InvestmentGuide } from "@/components/investment-guide"
+import { ParceladoCalculator } from "@/components/parcelado-calculator"
 import { ManualEntry } from "@/components/manual-entry"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { FinancialReportDownload } from "@/components/financial-report-download"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
-  parseCSV,
-  normalizeData,
   groupByMonth,
-  groupByCategory,
   computeSummary,
   type Transaction,
   type MonthlyData,
-  type CategoryData,
   type FinanceSummary,
 } from "@/lib/finance"
 import {
@@ -29,22 +27,43 @@ import {
   FileText,
   LayoutDashboard,
   TrendingUp,
-  PenLine,
+  Upload,
   PieChart,
   Menu,
+  BookOpen,
+  CreditCard,
 } from "lucide-react"
 
-type ActivePage = "dashboard" | "gastos" | "graficos" | "investimentos" | "adicionar"
+type ActivePage =
+  | "dashboard"
+  | "gastos"
+  | "graficos"
+  | "investimentos"
+  | "guia"
+  | "parcelado"
+  | "upload"
 
 const NAV_ITEMS: { id: ActivePage; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "gastos", label: "Gastos", icon: FileText },
-  { id: "graficos", label: "Graficos", icon: PieChart },
+  { id: "graficos", label: "Gráficos", icon: PieChart },
   { id: "investimentos", label: "Investimentos", icon: TrendingUp },
-  { id: "adicionar", label: "Adicionar Dados", icon: PenLine },
+  { id: "guia", label: "Guia", icon: BookOpen },
+  { id: "parcelado", label: "Parcelado vs Vista", icon: CreditCard },
+  { id: "upload", label: "Upload CSV", icon: Upload },
 ]
 
-function EmptyState({ icon: Icon, title, description }: { icon: typeof LayoutDashboard; title: string; description: string }) {
+const ALWAYS_ACCESSIBLE: ActivePage[] = ["upload", "investimentos", "guia", "parcelado"]
+
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof LayoutDashboard
+  title: string
+  description: string
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
@@ -71,7 +90,7 @@ function SidebarNav({
     <nav className="flex flex-col gap-1">
       {NAV_ITEMS.map((item) => {
         const isActive = activePage === item.id
-        const isDisabled = !hasData && item.id !== "adicionar" && item.id !== "investimentos"
+        const isDisabled = !hasData && !ALWAYS_ACCESSIBLE.includes(item.id)
         return (
           <button
             key={item.id}
@@ -99,42 +118,47 @@ export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [manualTransactions, setManualTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData>({})
-  const [categoryData, setCategoryData] = useState<CategoryData>({})
   const [summary, setSummary] = useState<FinanceSummary | null>(null)
   const [hasData, setHasData] = useState(false)
-  const [activePage, setActivePage] = useState<ActivePage>("adicionar")
+  const [activePage, setActivePage] = useState<ActivePage>("upload")
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const recalculateData = useCallback((allTransactions: Transaction[]) => {
     const monthly = groupByMonth(allTransactions)
-    const category = groupByCategory(allTransactions)
-    const summaryData = computeSummary(allTransactions, monthly, category)
+    // groupByCategory agora é feito internamente pelo CategoryChart
+    // usando o campo `kind` de cada transação para filtrar corretamente
+    const summaryData = computeSummary(allTransactions, monthly, {})
     setMonthlyData(monthly)
-    setCategoryData(category)
     setSummary(summaryData)
     if (allTransactions.length > 0) setHasData(true)
   }, [])
 
-  const handleFileLoaded = useCallback((content: string) => {
-    const rawData = parseCSV(content)
-    const normalized = normalizeData(rawData)
+  const handleFileLoaded = useCallback(
+    (newTransactions: Transaction[]) => {
+      setTransactions(newTransactions)
+      const all = [...newTransactions, ...manualTransactions]
+      recalculateData(all)
+      setActivePage("dashboard")
+    },
+    [manualTransactions, recalculateData]
+  )
 
-    setTransactions(normalized)
-    const all = [...normalized, ...manualTransactions]
-    recalculateData(all)
-    setActivePage("dashboard")
-  }, [manualTransactions, recalculateData])
-
-  const handleManualTransactionsChange = useCallback((updated: Transaction[]) => {
-    setManualTransactions(updated)
-    const all = [...transactions, ...updated]
-    recalculateData(all)
-  }, [transactions, recalculateData])
+  const handleManualTransactionsChange = useCallback(
+    (updated: Transaction[]) => {
+      setManualTransactions(updated)
+      const all = [...transactions, ...updated]
+      recalculateData(all)
+    },
+    [transactions, recalculateData]
+  )
 
   const handleNavigate = useCallback((page: ActivePage) => {
     setActivePage(page)
     setMobileOpen(false)
   }, [])
+
+  // Todas as transações combinadas (CSV + manuais)
+  const allTransactions = [...transactions, ...manualTransactions]
 
   return (
     <main className="min-h-screen bg-background">
@@ -142,7 +166,6 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
         <div className="flex items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            {/* Mobile menu */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden">
@@ -155,9 +178,13 @@ export default function Home() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                     <BarChart3 className="h-4 w-4 text-primary-foreground" />
                   </div>
-                  <span className="text-base font-bold text-foreground">Financas</span>
+                  <span className="text-base font-bold text-foreground">Baruck Finance</span>
                 </div>
-                <SidebarNav activePage={activePage} onNavigate={handleNavigate} hasData={hasData} />
+                <SidebarNav
+                  activePage={activePage}
+                  onNavigate={handleNavigate}
+                  hasData={hasData}
+                />
               </SheetContent>
             </Sheet>
 
@@ -165,16 +192,15 @@ export default function Home() {
               <BarChart3 className="h-4 w-4 text-primary-foreground" />
             </div>
             <h1 className="text-base font-bold text-foreground sm:text-lg">
-              Controle Financeiro
+              Baruck Finance
             </h1>
           </div>
 
-          {/* Desktop top nav */}
           <div className="flex items-center gap-1">
             <nav className="hidden lg:flex items-center gap-1">
               {NAV_ITEMS.map((item) => {
                 const isActive = activePage === item.id
-                const isDisabled = !hasData && item.id !== "adicionar" && item.id !== "investimentos"
+                const isDisabled = !hasData && !ALWAYS_ACCESSIBLE.includes(item.id)
                 return (
                   <button
                     key={item.id}
@@ -195,15 +221,6 @@ export default function Home() {
                 )
               })}
             </nav>
-            {hasData && summary && (
-              <FinancialReportDownload
-                transactions={[...transactions, ...manualTransactions]}
-                monthlyData={monthlyData}
-                categoryData={categoryData}
-                summary={summary}
-                variant="icon"
-              />
-            )}
             <ThemeToggle />
           </div>
         </div>
@@ -211,18 +228,20 @@ export default function Home() {
 
       {/* Main content */}
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        {/* ADICIONAR DADOS */}
-        {activePage === "adicionar" && (
+
+        {/* UPLOAD */}
+        {activePage === "upload" && (
           <div className="flex flex-col gap-6">
             <section className="flex flex-col items-center gap-2 text-center">
               <h2 className="text-2xl font-bold text-foreground sm:text-3xl text-balance">
-                Registre suas movimentacoes
+                Gerencie suas finanças com inteligência
               </h2>
               <p className="max-w-lg text-sm text-muted-foreground leading-relaxed">
-                Adicione seus gastos e ganhos manualmente para ter uma visao
-                completa da sua situacao financeira, com graficos interativos e resumos detalhados.
+                Importe seu extrato bancário e tenha uma visão completa da sua vida financeira —
+                com gráficos, análise de investimentos e muito mais.
               </p>
             </section>
+            <FileUpload onFileLoaded={handleFileLoaded} />
             <ManualEntry
               onTransactionsChange={handleManualTransactionsChange}
               manualTransactions={manualTransactions}
@@ -237,7 +256,7 @@ export default function Home() {
               <>
                 <SummaryCards summary={summary} />
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                  <CategoryChart data={categoryData} />
+                  <CategoryChart transactions={allTransactions} />
                   <MonthlyChart data={monthlyData} />
                 </div>
                 <MonthlySummary data={monthlyData} />
@@ -246,52 +265,54 @@ export default function Home() {
               <EmptyState
                 icon={LayoutDashboard}
                 title="Nenhum dado disponivel"
-                description="Adicione transacoes na aba Adicionar Dados para visualizar o resumo das suas financas."
+                description="Faca o upload de um arquivo CSV na aba Upload CSV para visualizar o resumo dos seus gastos."
               />
             )}
           </div>
         )}
 
-        {/* GASTOS (Transactions) */}
+        {/* GASTOS */}
         {activePage === "gastos" && (
           <div className="flex flex-col gap-6">
             {hasData ? (
-              <>
-                <TransactionList transactions={[...transactions, ...manualTransactions]} />
-              </>
+              <TransactionList transactions={allTransactions} />
             ) : (
               <EmptyState
                 icon={FileText}
                 title="Nenhuma transacao encontrada"
-                description="Adicione transacoes na aba Adicionar Dados para visualizar suas movimentacoes."
+                description="Faca o upload de um arquivo CSV para visualizar suas transacoes."
               />
             )}
           </div>
         )}
 
-        {/* GRAFICOS (Charts) */}
+        {/* GRAFICOS */}
         {activePage === "graficos" && (
           <div className="flex flex-col gap-6">
             {hasData ? (
               <>
-                <CategoryChart data={categoryData} />
+                <CategoryChart transactions={allTransactions} />
                 <MonthlyChart data={monthlyData} />
-                <ExpenseLineChart transactions={[...transactions, ...manualTransactions]} />
+                <ExpenseLineChart transactions={allTransactions} />
               </>
             ) : (
               <EmptyState
                 icon={PieChart}
                 title="Nenhum grafico disponivel"
-                description="Adicione transacoes na aba Adicionar Dados para gerar graficos interativos das suas financas."
+                description="Faca o upload de um arquivo CSV para gerar graficos interativos dos seus gastos."
               />
             )}
           </div>
         )}
 
         {/* INVESTIMENTOS */}
-        {activePage === "investimentos" && (
-          <InvestmentSimulator />
-        )}
+        {activePage === "investimentos" && <InvestmentSimulator />}
+
+        {/* GUIA */}
+        {activePage === "guia" && <InvestmentGuide />}
+
+        {/* PARCELADO VS À VISTA */}
+        {activePage === "parcelado" && <ParceladoCalculator />}
       </div>
     </main>
   )

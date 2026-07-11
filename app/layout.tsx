@@ -9,8 +9,11 @@ const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' })
 
 export const metadata: Metadata = {
-  title: 'Controle Financeiro',
-  description: 'Envie o extrato do seu banco e veja um resumo dos seus gastos com graficos e simulacao de investimentos.',
+  title: 'Baruck Finance',
+  description: 'Gerencie suas finanças com inteligência — importe extratos, analise gastos, simule investimentos e tome melhores decisões financeiras.',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export const viewport: Viewport = {
